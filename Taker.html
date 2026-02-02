@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Exam Logs</title>
+    <style>
+        body { background: #0f172a; color: #fff; font-family: sans-serif; padding: 40px; text-align: center; }
+        .card { background: rgba(30, 41, 59, 0.7); padding: 30px; border-radius: 20px; max-width: 600px; margin: auto; border: 1px solid #334155; }
+        ul { list-style: none; padding: 0; text-align: left; }
+        li { padding: 12px; border-bottom: 1px solid #1e293b; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>PERMANENT TAKER LOGS</h2>
+        <ul id="logList"></ul>
+    </div>
+    <script>
+        const logs = JSON.parse(localStorage.getItem('ee_board_history')) || [];
+        document.getElementById('logList').innerHTML = logs.map(l => `<li>${l}</li>`).join("");
+    </script>
+</body>
+</html>

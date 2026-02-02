@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Future EE | Board Review Portal</title>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #0f172a; --glass: rgba(30, 41, 59, 0.7); --primary: #38bdf8;
+            --accent: #fbbf24; --text: #f1f5f9; --success: #22c55e; --danger: #ef4444;
+            --transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: radial-gradient(circle at top right, #1e293b, #0f172a); color: var(--text); margin: 0; min-height: 100vh; overflow: hidden; }
+
+        .fs-toggle { position: fixed; top: 20px; right: 20px; z-index: 2000; background: var(--glass); border: 1px solid var(--primary); color: var(--primary); padding: 10px; border-radius: 50%; cursor: pointer; backdrop-filter: blur(5px); }
+        .overlay { position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(15px); background: rgba(15, 23, 42, 0.85); transition: var(--transition); }
+        .glass-card { background: var(--glass); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 40px; width: 95%; max-width: 450px; text-align: center; box-shadow: 0 0 50px rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; align-items: center; }
+        
+        .engr-input { background: rgba(255, 255, 255, 0.05); border: 2px solid var(--primary); padding: 15px; border-radius: 12px; color: white; width: 100%; font-size: 1.1rem; text-align: center; margin-bottom: 20px; outline: none; }
+        .btn-glow { width: 100%; padding: 15px; background: var(--primary); color: var(--bg); border: none; border-radius: 12px; font-family: 'Orbitron', sans-serif; font-weight: bold; cursor: pointer; transition: var(--transition); text-transform: uppercase; }
+        .btn-glow:hover { box-shadow: 0 0 30px var(--primary); transform: translateY(-2px); }
+
+        /* Dashboard & Sidebar - FIXED FOR PERMANENT BUTTON */
+        .dashboard { display: none; height: 100vh; grid-template-columns: 320px 1fr; }
+        @media (max-width: 900px) { .dashboard { grid-template-columns: 1fr; overflow-y: auto; height: auto; } }
+        
+        .sidebar { 
+            background: rgba(11, 17, 32, 0.95); border-right: 1px solid rgba(255, 255, 255, 0.1); 
+            padding: 25px; position: relative; display: flex; flex-direction: column; height: 100vh;
+        }
+        
+        .stat-box { background: rgba(255, 255, 255, 0.03); padding: 12px; border-radius: 12px; border-left: 4px solid var(--primary); margin-bottom: 12px; flex-shrink: 0; }
+        
+        .nav-grid { 
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 15px; 
+            background: rgba(0, 0, 0, 0.2); border-radius: 12px; flex-grow: 1; overflow-y: auto; margin-bottom: 20px;
+        }
+        
+        .nav-btn { background: #334155; color: white; border: none; padding: 10px 0; border-radius: 6px; cursor: pointer; font-size: 0.75rem; transition: 0.2s; }
+        .nav-btn.active { background: var(--primary); box-shadow: 0 0 10px var(--primary); }
+        .nav-btn.correct { background: var(--success); }
+        .nav-btn.wrong { background: var(--danger); }
+
+        /* Permanent End Button Pinned to Bottom */
+        .btn-end { 
+            background: var(--danger); color: white; padding: 15px; border: none; border-radius: 12px; 
+            font-family: 'Orbitron'; font-weight: bold; cursor: pointer; width: 100%; flex-shrink: 0; 
+            margin-top: auto; transition: var(--transition); 
+        }
+        .btn-end:hover { background: #b91c1c; transform: scale(1.02); }
+
+        /* Hidden Admin Panel */
+        #adminPanel { display: none; background: #000; border: 1px solid var(--accent); padding: 15px; border-radius: 15px; margin-bottom: 10px; }
+        .takers-list { list-style: none; padding: 0; margin: 0; max-height: 150px; overflow-y: auto; font-size: 0.75rem; color: #fff; }
+        .takers-list li { border-bottom: 1px solid #333; padding: 5px 0; }
+
+        /* Quiz UI */
+        .main-quiz { padding: 40px; overflow-y: auto; display: flex; flex-direction: column; align-items: center; }
+        .q-card { background: var(--glass); border-radius: 28px; padding: 40px; width: 100%; max-width: 850px; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .opt { background: rgba(51, 65, 85, 0.4); border: 2px solid transparent; padding: 20px; margin: 10px 0; border-radius: 15px; cursor: pointer; transition: var(--transition); }
+        .opt:hover:not(.disabled) { background: rgba(56, 189, 248, 0.15); border-color: var(--primary); padding-left: 30px; }
+        .opt.correct { background: var(--success) !important; color: white; }
+        .opt.wrong { background: var(--danger) !important; }
+        .sol-panel { display: none; margin-top: 25px; background: rgba(0, 0, 0, 0.3); border-radius: 18px; border: 1px solid rgba(251, 191, 36, 0.4); }
+        .sol-header { background: rgba(251, 191, 36, 0.15); padding: 12px 20px; color: var(--accent); font-weight: bold; border-bottom: 1px solid rgba(251, 191, 36, 0.2); }
+        .sol-content { padding: 20px; font-size: 0.95rem; }
+        .cal-tech { color: var(--primary); font-family: 'Orbitron', sans-serif; font-size: 0.8rem; margin-top: 15px; display: block; background: rgba(56, 189, 248, 0.1); padding: 12px; border-radius: 10px; border-left: 3px solid var(--primary); }
+        .next-bar { display: none; margin-top: 20px; width: 100%; }
+
+        /* Aesthetic Results UI */
+        .result-screen { display: none; }
+        .score-circle { width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--accent); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-family: 'Orbitron'; margin: 25px auto; background: rgba(251, 191, 36, 0.1); }
+        .badge { display: inline-block; padding: 8px 20px; border-radius: 50px; font-weight: bold; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 20px; }
+        .badge-top { background: var(--accent); color: #000; box-shadow: 0 0 20px var(--accent); }
+        .badge-pass { background: var(--success); color: white; }
+        .badge-fail { background: var(--danger); color: white; }
+    </style>
+</head>
+<body>
+
+<button class="fs-toggle" onclick="toggleFullScreen()">⛶</button>
+
+<div id="screen1" class="overlay">
+    <div class="glass-card">
+        <h1>FUTURE ENGINEER</h1>
+        <input type="text" id="nameInput" class="engr-input" placeholder="Enter Candidate Name">
+        <button class="btn-glow" onclick="initUser()">INITIALIZE SYSTEM</button>
+    </div>
+</div>
+
+<div id="screen2" class="overlay" style="display:none;">
+    <div class="glass-card">
+        <h2 id="engrTitle" style="color:var(--accent); font-family:'Orbitron'; font-size: 1rem; margin-bottom: 2rem;"></h2>
+        <div style="background:rgba(56, 189, 248, 0.1); padding:25px; border-radius:20px; border:1px solid var(--primary); cursor:pointer; width:100%;" onclick="startExam()">
+            <h3 style="margin:0; color:var(--primary)">MATHEMATICS</h3>
+            <p style="font-size:0.75rem; margin-top:8px;">Mock-Board Exam 1 [50 Items]</p>
+        </div>
+    </div>
+</div>
+
+<div id="examMain" class="dashboard">
+    <div class="sidebar">
+        <h2 onclick="triggerAdmin()" style="font-family:'Orbitron'; font-size: 0.9rem; color: var(--primary); margin-bottom: 2rem; cursor: help;">EE PORTAL</h2>
+        
+        <div class="stat-box"><small style="opacity:0.6;">CANDIDATE:</small><div id="sideName" style="font-weight:bold;"></div></div>
+        <div class="stat-box"><small style="opacity:0.6;">SCORE:</small><div id="scoreDisplay" style="font-size:1.4rem; font-weight:bold;">0 / 50</div></div>
+        <div class="stat-box"><small style="opacity:0.6;">TIMER:</small><div id="timerDisplay" style="font-family:'Orbitron'; color:var(--accent); font-size:1.2rem;">00:00:00</div></div>
+        
+        <div class="nav-grid" id="navGrid"></div>
+
+        <div id="adminPanel">
+            <div class="admin-title">ADMIN CONTROL: TAKER HISTORY</div>
+            <ul id="takersList" class="takers-list"></ul>
+            <button onclick="clearTakers()" style="margin-top:10px; background:red; color:white; border:none; border-radius:5px; font-size:0.6rem; cursor:pointer; padding:5px; width: 100%;">CLEAR ALL</button>
+        </div>
+
+        <button class="btn-end" onclick="endEarly()">END EXAM</button>
+    </div>
+
+    <div class="main-quiz">
+        <div class="q-card" id="qContainer">
+            <span id="itemLabel" style="color:var(--primary); font-weight:bold; font-size:0.75rem; letter-spacing:3px; text-transform: uppercase;"></span>
+            <h2 id="questionText" style="font-weight:400; line-height:1.6; margin-top: 15px;"></h2>
+            <div id="optionGroup"></div>
+            <div id="solPanel" class="sol-panel">
+                <div class="sol-header">💡 BOARD SOLUTION</div>
+                <div class="sol-content">
+                    <div id="solText"></div>
+                    <div id="calTech" class="cal-tech"></div>
+                </div>
+            </div>
+            <div id="nextBar" class="next-bar">
+                <button class="btn-glow" style="width:100%; background:var(--success); color:white;" onclick="nextQ()">PROCEED →</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="resultScreen" class="overlay result-screen" style="display:none;">
+    <div class="glass-card" style="max-width: 600px; padding: 50px;">
+        <div style="font-size: 0.7rem; letter-spacing: 3px; margin-bottom: 10px; opacity: 0.7;">OFFICIAL BOARD RESULTS</div>
+        <h2 id="certStatus" style="font-family: 'Orbitron'; letter-spacing: 5px;">CERTIFIED</h2>
+        <h1 id="resName" style="color:white; margin: 10px 0; font-size: 1.5rem;"></h1>
+        <div id="statusBadge" class="badge"></div>
+        <div class="score-circle" id="resScore"></div>
+        <p id="resTime" style="font-family: 'Orbitron'; color: var(--primary);"></p>
+        <button class="btn-glow" onclick="location.reload()">RE-TAKE EXAM</button>
+    </div>
+</div>
+
+<script src="Question.js"></script>
+
+<script>
+let userName = ""; let currentIdx = 0; let score = 0; let startTime; let timerInt; let activeQs = [];
+
+function toggleFullScreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+
+function initUser() {
+    const n = document.getElementById('nameInput').value;
+    if(!n) return;
+    userName = `Engr. ${n}`;
+    saveTaker(userName);
+    document.getElementById('screen1').style.display = "none";
+    document.getElementById('screen2').style.display = "flex";
+    document.getElementById('engrTitle').innerText = userName;
+}
+
+function saveTaker(name) {
+    let takers = JSON.parse(localStorage.getItem('ee_board_history')) || [];
+    let entry = `${name} | ${new Date().toLocaleDateString()}`;
+    if(!takers.includes(entry)) {
+        takers.unshift(entry);
+        localStorage.setItem('ee_board_history', JSON.stringify(takers));
+    }
+}
+
+function triggerAdmin() {
+    let pw = prompt("ADMIN ACCESS REQUIRED:");
+    if(pw === "admin123") {
+        const panel = document.getElementById('adminPanel');
+        panel.style.display = panel.style.display === "block" ? "none" : "block";
+        loadTakersAdmin();
+    }
+}
+
+function loadTakersAdmin() {
+    const list = document.getElementById('takersList');
+    let takers = JSON.parse(localStorage.getItem('ee_board_history')) || [];
+    list.innerHTML = takers.length > 0 ? "" : "<li>No data recorded.</li>";
+    takers.forEach(t => {
+        const li = document.createElement('li'); li.innerText = t; list.appendChild(li);
+    });
+}
+
+function clearTakers() { if(confirm("Wipe all taker history?")) { localStorage.removeItem('ee_board_history'); loadTakersAdmin(); } }
+
+function startExam() {
+    document.getElementById('screen2').style.display = "none";
+    document.getElementById('examMain').style.display = "grid";
+    document.getElementById('sideName').innerText = userName;
+    activeQs = QUESTIONS.sort(() => Math.random() - 0.5);
+    startTime = new Date();
+    timerInt = setInterval(() => {
+        const diff = Math.floor((new Date() - startTime) / 1000);
+        const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+        const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+        const s = String(diff % 60).padStart(2, '0');
+        document.getElementById('timerDisplay').innerText = `${h}:${m}:${s}`;
+    }, 1000);
+    populateNav(); loadQuestion(0);
+}
+
+function endEarly() {
+    if(confirm("Terminate Exam? Current score will be calculated and session will end.")) showResults();
+}
+
+function populateNav() {
+    const grid = document.getElementById('navGrid'); grid.innerHTML = "";
+    activeQs.forEach((_, i) => {
+        const b = document.createElement('button'); b.className = 'nav-btn'; b.id = `nav-${i}`; b.innerText = i + 1;
+        b.onclick = () => { if(document.getElementById('nextBar').style.display === "block") loadQuestion(i); };
+        grid.appendChild(b);
+    });
+}
+
+function loadQuestion(idx) {
+    currentIdx = idx; const data = activeQs[idx];
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`nav-${idx}`).classList.add('active');
+    document.getElementById('itemLabel').innerText = `Item ${idx + 1} of 50`;
+    document.getElementById('questionText').innerText = data.q;
+    document.getElementById('solPanel').style.display = "none";
+    document.getElementById('nextBar').style.display = "none";
+    document.getElementById('solText').innerHTML = `<strong>Solution:</strong><br>${data.h}`;
+    document.getElementById('calTech').innerHTML = `⌨️ ${data.cal}`;
+    const group = document.getElementById('optionGroup'); group.innerHTML = "";
+    [...data.a].sort(() => Math.random() - 0.5).forEach(txt => {
+        const d = document.createElement('div'); d.className = 'opt'; d.innerText = txt;
+        d.onclick = () => {
+            if(txt === data.c) {
+                d.classList.add('correct');
+                if(!document.getElementById(`nav-${idx}`).classList.contains('wrong')) score++;
+                document.getElementById(`nav-${idx}`).classList.add('correct');
+            } else {
+                d.classList.add('wrong');
+                document.getElementById(`nav-${idx}`).classList.add('wrong');
+                document.querySelectorAll('.opt').forEach(b => { if(b.innerText === data.c) b.classList.add('correct'); });
+            }
+            document.getElementById('scoreDisplay').innerText = `${score} / 50`;
+            document.querySelectorAll('.opt').forEach(o => o.classList.add('disabled'));
+            document.getElementById('solPanel').style.display = "block";
+            document.getElementById('nextBar').style.display = "block";
+        };
+        group.appendChild(d);
+    });
+    MathJax.typeset();
+}
+
+function nextQ() { if(currentIdx < activeQs.length - 1) loadQuestion(currentIdx + 1); else showResults(); }
+
+function showResults() {
+    clearInterval(timerInt);
+    document.getElementById('examMain').style.display = "none";
+    const resScreen = document.getElementById('resultScreen');
+    resScreen.style.display = "flex";
+    document.getElementById('resName').innerText = userName.toUpperCase();
+    document.getElementById('resScore').innerText = `${score}/50`;
+    document.getElementById('resTime').innerText = `TIME: ${document.getElementById('timerDisplay').innerText}`;
+
+    const badge = document.getElementById('statusBadge');
+    const certText = document.getElementById('certStatus');
+    
+    if(score >= 35) { 
+        certText.innerText = "CERTIFIED";
+        certText.style.color = "var(--primary)";
+        badge.innerText = "TOPNOTCHER (RANK S)"; 
+        badge.className = "badge badge-top"; 
+    } else if(score >= 25) { 
+        certText.innerText = "CERTIFIED";
+        certText.style.color = "var(--primary)";
+        badge.innerText = "PASSED"; 
+        badge.className = "badge badge-pass"; 
+    } else { 
+        certText.innerText = "NOT CERTIFIED";
+        certText.style.color = "var(--danger)";
+        badge.innerText = "CONDITIONAL (FAILED)"; 
+        badge.className = "badge badge-fail"; 
+    }
+}
+</script>
+</body>
+</html>
